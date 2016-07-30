@@ -1,42 +1,51 @@
 <?php
-/**
- * Flip (mirror) an image left to right.
- *
- * @param image  resource
- * @param x      int
- * @param y      int
- * @param width  int
- * @param height int
- * @return bool
- * @require PHP 3.0.7 (function_exists), GD1
- */
-function flipMyImage(&$image, $x = 0, $y = 0, $width = null, $height = null)
-{
-    if ($width  < 1) $width  = imagesx($image);
-    if ($height < 1) $height = imagesy($image);
-    // Truecolor provides better results, if possible.
-    if (function_exists('imageistruecolor') && imageistruecolor($image))
-    {
-        $tmp = imagecreatetruecolor(1, $height);
-    }
-    else
-    {
-        $tmp = imagecreate(1, $height);
-    }
-    $x2 = $x + $width - 1;
-    for ($i = (int) floor(($width - 1) / 2); $i >= 0; $i--)
-    {
-        // Backup right stripe.
-        imagecopy($tmp,   $image, 0,        0,  $x2 - $i, $y, 1, $height);
-        // Copy left stripe to the right.
-        imagecopy($image, $image, $x2 - $i, $y, $x + $i,  $y, 1, $height);
-        // Copy backuped right stripe to the left.
-        imagecopy($image, $tmp,   $x + $i,  $y, 0,        0,  1, $height);
-    }
-    imagedestroy($tmp);
-    return true;
-}
 
+function ImageFlip ( $imgsrc, $mode )
+{
+
+    $width                        =    imagesx ( $imgsrc );
+    $height                       =    imagesy ( $imgsrc );
+
+    $src_x                        =    0;
+    $src_y                        =    0;
+    $src_width                    =    $width;
+    $src_height                   =    $height;
+
+    switch ( $mode )
+    {
+
+        case '1': //vertical
+            $src_y                =    $height -1;
+            $src_height           =    -$height;
+        break;
+
+        case '2': //horizontal
+            $src_x                =    $width -1;
+            $src_width            =    -$width;
+        break;
+
+        case '3': //both
+            $src_x                =    $width -1;
+            $src_y                =    $height -1;
+            $src_width            =    -$width;
+            $src_height           =    -$height;
+        break;
+
+        default:
+            return $imgsrc;
+
+    }
+
+    $imgdest                    =    imagecreatetruecolor ( $width, $height );
+
+    if ( imagecopyresampled ( $imgdest, $imgsrc, 0, 0, $src_x, $src_y , $width, $height, $src_width, $src_height ) )
+    {
+        return $imgdest;
+    }
+
+    return $imgsrc;
+
+}
 function map($value, $fromLow, $fromHigh, $toLow, $toHigh) {
     $fromRange = $fromHigh - $fromLow;
     $toRange = $toHigh - $toLow;
@@ -71,18 +80,31 @@ if (isset($_FILES['image']['name']))
         //case "image/pjpeg": $src = imagecreatefromjpeg($saveto); break;
         //case "image/png": $src = imagecreatefrompng($saveto); break;
         
-        case "image/gif": $src = imagecreatefromgif($_FILES['image']['tmp_name']); break;
+        case "image/gif": $src = imagecreatefromgif($_FILES['image']['tmp_name']); 
+            $src = imagecreatefromjpeg($_FILES['image']['tmp_name']); 
+            $imgtype = "Content-Type: image/gif";
+            break;
         case "image/jpeg": // Both regular and progressive jpegs
-        case "image/pjpeg": $src = imagecreatefromjpeg($_FILES['image']['tmp_name']); break;
-        case "image/png": $src = imagecreatefrompng($_FILES['image']['tmp_name']); break;
-        default: $typeok = FALSE; break;
+        case "image/jpg": 
+            $src = imagecreatefromjpeg($_FILES['image']['tmp_name']); 
+            $imgtype = "Content-Type: image/jpg";
+            break;
+        case "image/png": $src = imagecreatefrompng($_FILES['image']['tmp_name']); 
+            $imgtype = "Content-Type: image/png";
+            break;
+        case "image/bmp": $src = imagecreatefromwbmp($_FILES['image']['tmp_name']); 
+            $imgtype = "Content-Type: image/bmp";
+            break;
+        default: 
+            $typeok = FALSE; 
+            break;
     }
     if ($typeok)
     { 
-       //print ";image OK\n";
-       //list($w, $h) = getimagesize($saveto);
-       list($w, $h) = getimagesize($_FILES['image']['tmp_name']);
-       
+       list($w, $h) = getimagesize($_FILES['image']['tmp_name']);  
+       // delete artifacts (line under and to right of the image)
+       $h -= 2;
+       $w -= 2;     
     }
     else
       exit();
@@ -102,6 +124,7 @@ if(!isset($_POST['sizeY']) || $_POST['sizeY'] == 0)
 $laserMax=$_POST['LaserMax'];//$laserMax=65; //out of 255
 $laserMin=$_POST['LaserMin']; //$laserMin=20; //out of 255
 $laserOff=$_POST['LaserOff'];//$laserOff=13; //out of 255
+$laserCMD=$_POST['LaserCmd'];//$laserCMD=M42 P4 S or laserCMD=M106 S for example
 $whiteLevel=$_POST['whiteLevel'];
 
 $feedRate = $_POST['feedRate'];//$feedRate = 800; //in mm/sec
@@ -115,107 +138,115 @@ $scanGap=$_POST['scanGap'];//$scanGap=.1;
 
 $offsetX=$_POST['offsetX'];//$offsetX=5;
 $sizeX=$sizeY*$w/$h; //SET A HEIGHT AND CALC WIDTH (this should be customizable)
-$resX=$_POST['resX'];;//$resX=.1;
+$resX=$_POST['resX'];//$resX=.1;
+
+$passCnt=$_POST['passCnt']; //$passCnt 1 or greater
 
 $pixelsX = round($sizeX/$resX);
 $pixelsY = round($sizeY/$scanGap);
 
 $tmp = imagecreatetruecolor($pixelsX, $pixelsY);      
 imagecopyresampled($tmp, $src, 0, 0, 0, 0, $pixelsX, $pixelsY, $w, $h);
-flipMyImage($tmp);
+
+$fliped = $tmp;
+$tmp = ImageFlip($tmp,3);
+if($_POST['flip'] != 1) 
+  {
+    $tmp = ImageFlip($tmp,2);
+  }
+
+
 imagefilter($tmp,IMG_FILTER_GRAYSCALE);
+imagefilter($fliped,IMG_FILTER_GRAYSCALE);
 
 if($_POST['preview'] == 1)
    {
-   header('Content-Type: image/jpeg'); //do this to display following image
-   imagejpeg($tmp); //show image
+   header($imgtype); //do this to display following image
+   if($_POST['flip'] == 1) 
+   {
+      imagejpeg($tmp); //show image
+   } else {
+      imagejpeg($fliped); //show image
+   }
+   imagedestroy($fliped);
    imagedestroy($tmp);
    imagedestroy($src);        
    exit(); //exit if above
    }
 
+
 header("Content-Disposition: attachment; filename=".$_FILES['image']['name'].".gcode");
 
-print("\n;Created using Nebarnix's IMG2GCO program Ver 1.0\n");
-print(";http://nebarnix.com 2015\n");
-
+print(";Created using Nebarnix's IMG2GCO program Ver 1.0 with modifications by Larry Fortna\n");
+print(";http://gcode.flashsolutions.us/img2gcode/index.html\n");
+print(";Image Filename:".$_FILES['image']['name'] );
 print(";Size in pixels X=$pixelsX, Y=$pixelsY\n");
 $cmdRate = round(($feedRate/$resX)*2/60);
-print(";Speed is $feedRate mm/min, $resX mm/pix => $cmdRate lines/sec\n");
+print(";Speed is $feedRate mm/min, $resX mm/pix => $cmdRate lines/min\n");
 print(";Power is $laserMin to $laserMax (". round($laserMin/255*100,1) ."%-". round($laserMax/255*100,1) ."%)\n");
+print(";Pass count value input is $passCnt\n");
 
-//fill up a depthmap 
-//DELETEME
-/*
-$lineIndex=0;
-for($line=$offsetY; $line < ($sizeY+$offsetY); $line+=$scanGap)
-   {
-   $pixelIndex=0;   
-   for($pixel=$offsetX; $pixel<($sizeX+$offsetX); $pixel+=$resX)
-      {      
-      imagecolorat($tmp,$lineIndex,$pixelIndex) = rand(0,65535);
-      //print(imagecolorat($tmp,$lineIndex,$pixelIndex));
-      $pixelIndex++;
-      }
-   $lineIndex++;   
-   }
-$lineIndex--;
-
-
-print(";Verified size iin pixels X=$pixelIndex, Y=$lineIndex\n");*/
 print("G21\n");
-print("M106 S$laserOff; Turn laser off\n");
+print("$laserCMD$laserOff; Turn laser off\n");
 print("G1 F$feedRate\n");
 
 $lineIndex=0;
 print("G0 X$offsetX Y$offsetY F$travelRate\n");
-for($line=$offsetY; $line<($sizeY+$offsetY); $line+=$scanGap)
-   {  
-   //analyze the row and find first and last nonwhite pixels
-   $pixelIndex=0;
-   $firstX = 0;
-   $lastX = 0;
-   for($pixelIndex=0; $pixelIndex < $pixelsX; $pixelIndex++)
-      {
-      $rgb = imagecolorat($tmp,$pixelIndex,$lineIndex);
-      $value = ($rgb >> 16) & 0xFF;
-      if($value < $whiteLevel) //Nonwhite image parts
-         {
-         if($firstX == 0)
-            $firstX = $pixelIndex;
-         
-         $lastX = $pixelIndex;         
-         }
+
+for($pass=1; $pass<($passCnt+1); $pass++) 
+{
+  print(";PASS $pass\n");
+  for($line=$offsetY; $line<($sizeY+$offsetY); $line+=$scanGap)
+  {  
+     //analyze the row and find first and last nonwhite pixels
+     $pixelIndex=0;
+     $firstX = 0;
+     $lastX = 0;
+     for($pixelIndex=0; $pixelIndex < $pixelsX; $pixelIndex++)
+     {
+        $rgb = imagecolorat($tmp,$pixelIndex,$lineIndex);
+        $value = ($rgb >> 16) & 0xFF;
+        if($value < $whiteLevel) //Nonwhite image parts
+        {
+           if($firstX == 0)
+              $firstX = $pixelIndex;
+           
+           $lastX = $pixelIndex;         
+        }
+     }
+        
+     $pixelIndex=$firstX;
+     for($pixel=($offsetX+$firstX*$resX); $pixel < ($sizeX+$offsetX); $pixel+=$resX)
+     {
+          if($pixelIndex == $lastX) {
+             print(";<---\n"); 
+             break;
+          }
+          if($pixelIndex == $firstX)
+             {            
+             print("G1 X".round($pixel+$overScan,4)." Y".round($line,4)." F$travelRate\n");
+             print("G1 F$feedRate\n");
+             print("G1 X".round($pixel,4)." Y".round($line,4)."\n");
+             }
+          else
+             print("G1 X".round($pixel,4)."\n");
+
+          $rgb = imagecolorat($tmp,$pixelIndex,$lineIndex);
+          $value = ($rgb >> 16) & 0xFF;
+          $value = round(map($value,255,0,$laserMin,$laserMax),4);
+          print("$laserCMD$value\n");
+          $pixelIndex++;
       }
-      
-   $pixelIndex=$firstX;
-   for($pixel=$offsetX+$firstX*$resX; $pixel < ($sizeX+$offsetX); $pixel+=$resX)
-      {
-      if($pixelIndex == $lastX)
-         break;
-      if($pixelIndex == $firstX)
-         {            
-         print("G1 X".round($pixel-$overScan,4)." Y".round($line,4)." F$travelRate\n");
-         print("G1 F$feedRate\n");
-         print("G1 X".round($pixel,4)." Y".round($line,4)."\n");
-         }
-      else
-         //print("G1 X".round($pixel,4)." Y".round($line,4)."\n");
-         print("G1 X".round($pixel,4)."\n");
-   
-      //print("($line,$pixel,".imagecolorat($tmp,$lineIndex,$pixelIndex).")\n");
-      $rgb = imagecolorat($tmp,$pixelIndex,$lineIndex);
-      $value = ($rgb >> 16) & 0xFF;
-      $value = round(map($value,255,0,$laserMin,$laserMax),4);
-      print("M106 S$value\n");
-      $pixelIndex++;
-      }
-   print("M106 S$laserOff;\n\n");      
-   $lineIndex++;
-   }
+      print("$laserCMD$laserOff ; Laser OFF\n");      
+      $lineIndex++;
+  }
+  
+}
 $lineIndex--;
 
-print("M106 S$laserOff ;Turn laser off\n");
+print("$laserCMD$laserOff ;Turn laser off\n");
 print("G0 X$offsetX Y$offsetY F$travelRate ;Go home\n");
+print("G28");
 imagedestroy($tmp);
+imagedestroy($flip);
 ?>
