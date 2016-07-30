@@ -1,0 +1,52 @@
+<html>    
+    <head>
+        <script>
+            function validateForm(){
+                var image = document.getElementById("image").value;
+                var name = document.getElementById("name").value;
+                if (image =='')
+                {
+                    return false;
+                }
+                if(name =='')
+                {
+                    return false;
+                } 
+                else 
+                {
+                    return true;
+                } 
+                return false;
+            }
+        </script>
+    </head>
+
+    <body>
+        <form method="post" action="gcodetest.php" enctype="multipart/form-data">
+            Laser Min Power [0-255]: <input type="text" value="0" name="LaserMin" size="8"/><br />
+            Laser Max Power [0-255]: <input type="text" value="3" name="LaserMax" size="8"/><br />
+            Laser 'Off' Power [0-255]: <input type="text" value="0" name="LaserOff" size="8"/><br />
+            Skip over RGB values above [0-255]: <input type="text" value="252" name="whiteLevel" size="8"/><br />
+            
+            Travel (noncutting) Rate [mm/min]: <input type="text" value="4000" name="travelRate" size="8"/><br />
+            Scan (cutting) Rate [mm/min]: <input type="text" value="3300" name="feedRate" size="8"/><br />
+            
+            Overscan Distance (prevents twang from showing) [mm]: <input value="0" type="text" name="overScan" size="8"/><br />
+            
+            Height (width autocalculated) [mm]: <input type="text" value="75" name="sizeY" size="8"/><br />
+            Horizontal Resolution [mm/pixel]: <input value="0.1" type="text" name="resX" size="8"/><br />
+            Scangap [mm/line]: <input type="text" value="0.1" name="scanGap" size="8"/><br />
+            Start X [mm from 0 for right of image]: <input value="0" type="text" name="offsetX" size="8"/><br />
+            Start Y [mm from 0 for top of image]: <input value="0" type="text" name="offsetY" size="8"/><br />
+            Image File: <input type="file" accept="image/*" name="image" id="image" /><br />
+            Output: 
+            <input type="radio" name="preview" value="0" checked="checked" >Gcode
+            <input type="radio" name="preview" value="1">Grayscale Preview
+            <input type="checkbox" name="flip" value="1" >Flip Image
+            <input type="radio" name="preview" value="2">White-level Preview (test, may not work yet)<br />
+            <input type="submit" value='Save' onclick="return validateForm()"/>            
+        </form>
+       <h3><a href="http://wiki.nebarnix.com/wiki/Img2gco">Full Documentation</a></h3>
+       <p>This version creates a 1 pixel height map of the Z axis so that the output can be viewed in a typical GCODE viewer such as Camotics.  Switch to <a href="index.html">original version</a> to generate GCODE for your laser. </p> 
+    </body>
+</html>
