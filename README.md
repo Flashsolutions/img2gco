@@ -6,7 +6,7 @@ See http://wiki.nebarnix.com/wiki/Img2gco for overall project details!
 Added pass count option
 
 Usage details:
-* Pass Count:
+* Pass Count [1-20]: - Defaults to 1 pass. 
 * Pass Depth [mm]: - This is the expected depth in millimenters.
 * Laser Min Power [0-100]: - This is the laser power that corresponds to WHITE
 * Laser Max Power [0-100]: - This is the laser power that corresponds to BLACK
