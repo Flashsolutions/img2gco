@@ -24,14 +24,16 @@
     <body>
         <form method="post" action="gcode.php" enctype="multipart/form-data">
             Pass Count [1-20]: <input type="text" value="1" name="passCnt" size="2"/><br />
-            Laser Min Power [0-255]: <input type="text" value="0" name="LaserMin" size="8"/><br />
-            Laser Max Power [0-255]: <input type="text" value="252" name="LaserMax" size="8"/><br />
-            Laser 'Off' Power [0-255]: <input type="text" value="0" name="LaserOff" size="8"/><br />
-            Laser Command (M106 S) or (M42 P4 S):<input type="text" value="M42 P4 S" name="LaserCmd" size="12"/><br />
+            Pass Depth [mm]: <input type="text" value="1" name="passDepth" size="2"/><br />
+            Laser Min Power [0-100]: <input type="text" value="0" name="LaserMin" size="8"/><br />
+            Laser Max Power [0-100]: <input type="text" value="100" name="LaserMax" size="8"/><br />
+            Laser 'Off' Power [0-100;space]: <input type="text" value="" name="LaserOFFPwr" size="8"/><br />
+            Laser ON Command (M3 S) or (M106 S):<input type="text" value="M3 S" name="LaserONCmd" size="12"/><br />
+            Laser OFF Command (M5 or (M106 S):<input type="text" value="M5" name="LaserOFFCmd" size="12"/><br />
             Skip over RGB values above [0-255]: <input type="text" value="252" name="whiteLevel" size="8"/><br />
             
-            Travel (noncutting) Rate [mm/min]: <input type="text" value="1000" name="travelRate" size="8"/><br />
-            Scan (cutting) Rate [mm/min]: <input type="text" value="3000" name="feedRate" size="8"/><br />
+            Travel (noncutting) Rate [mm/min]: <input type="text" value="2000" name="travelRate" size="8"/><br />
+            Scan (cutting) Rate [mm/min]: <input type="text" value="1000" name="feedRate" size="8"/><br />
             
             Overscan Distance (prevents twang from showing) [mm]: <input value="1" type="text" name="overScan" size="8"/><br />
             
@@ -50,18 +52,15 @@
             
        <h3><a href="http://wiki.nebarnix.com/wiki/Img2gco">Full Documentation</a></h3>
        <p> <b>About this tool:</b> This tool was created because the originator, (<a href="http://www.thingiverse.com/nebarnix/about">Nebarnix</a>) could not find any useable image to gcode converters suitable for lasers based on 3D printers.  
-       <p>
-        PicEngrave is one such software that proports to do what this software does, but it causes ghost images to appear when run thru 
-        a Repetier controller so I modified this software to fix some issues it had and to use a user defined command with a PWM signal such as M106 or M42.<BR><BR>
-        This software assumes that your Laser Pin is connected to PWM Pin 4 if you use (M42 P4 S) as your Laser Command and pin 4 will be used to drive a TTL driver.</p> 
-        
+ 	     <p>I made a number of modifications to the original code to fix issues I found with it and to add a pass counter to the GCODE.
+ 	     	
         <p> <b>Laser Power and Speed:</b>You should set laser min to a level just below where it makes a mark on 
         your given material and the laser max to a level where it makes a nice black mark and where increasing power does not make the mark any darker.
         Trial and error is certainly required here, so please test your material BEFORE you ruin that nice thing you were trying to make.</p>
         
         <p><b>A note on commands per second:</b> Nebarnix's Printrboard can handle about 280 commands per second over USB and about 380 when printing from the SDcard. 
         <BR>
-        This is somewhat abstracted to this program only because commands can vary considerably in length.</p> 
-        <p>If you would like to preview your gcode in a visual, save it with this link instead... <a href="indextest.html">test link</a></p>
+        <p>I am using a version of Marlin firmware which I modified to work with my MPCNC printer.  If you are having issues with your laser, I suggest you check it out.  It is on Github at <a href="github.com">https://github.com/Flashsolutions/buildlog-lasercutter-marlin</a>.
+ 
     </body>
 </html>
